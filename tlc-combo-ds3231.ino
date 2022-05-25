@@ -18,10 +18,12 @@ void(* auto_reset) (void) = 0;
 #include <nRF24L01.h>
 #include <RF24.h>
 
-#include <virtuabotixRTC.h>
+//#include <virtuabotixRTC.h>
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
 #include <EEPROM.h>
+
+#include <DS3231.h>
 
 #define r1 43
 #define y1 42
@@ -48,8 +50,8 @@ void(* auto_reset) (void) = 0;
 
 #define on HIGH
 #define off LOW
-#define hour 0
-#define minute 1
+#define jm 0
+#define mn 1
 #define manFlash A0
 
 #define tcp Serial1
@@ -88,7 +90,12 @@ byte colPins[COLS] = {5, 6, 7, 8};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 //Inisialisasi pin RTC (CLK, DAT, RST) DS1302
-virtuabotixRTC myRTC(4, 3, 2);
+//virtuabotixRTC myRTC(4, 3, 2);
+
+// Init the DS3231 using the hardware interface
+DS3231  myRTC(SDA, SCL);
+// Init a Time-data structure
+Time  t;
 
 String nama_hari[8] = {"===", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MIN"};
 int hari, tanggal, bulan, tahun, jam, menit, detik;
@@ -186,6 +193,10 @@ void setup()
 
   Serial.begin(9600);
   delay(100);
+
+  // Initialize the rtc object
+  myRTC.begin();
+  
   Serial.println("log page = " + String(logPage));
   Serial.println("jumlah on = " + String(dataLog));
   Serial.println("TLC-PTK 5.0");
@@ -309,14 +320,14 @@ void baca_alamat()
 //  rf24.setPALevel(RF24_PA_HIGH);
   rf24.setPALevel(RF24_PA_MAX);
   rf24.stopListening();
-//  Serial.print("alamat nrf: ");
-//  Serial.println(alamat[0][0]);
-//  Serial.print("alamat nrf: ");
-//  Serial.print(alamat[0][0], HEX);
-//  Serial.print(alamat[0][1], HEX);
-//  Serial.print(alamat[0][2], HEX);
-//  Serial.print(alamat[0][3], HEX);
-//  Serial.println(alamat[0][4], HEX);
+  Serial.print("alamat nrf: ");
+  Serial.println(alamat[0][0]);
+  Serial.print("alamat nrf: ");
+  Serial.print(alamat[0][0], HEX);
+  Serial.print(alamat[0][1], HEX);
+  Serial.print(alamat[0][2], HEX);
+  Serial.print(alamat[0][3], HEX);
+  Serial.println(alamat[0][4], HEX);
 }
 
 void tampil_durasi()
@@ -1630,31 +1641,31 @@ void view_for_set_durasi(int kursor)
   
     lcd.setCursor(4,0);
     lcd.print(" ");
-    if ( startJadwal[baris1][hour] < 10 ) lcd.print("0");
-    lcd.print(startJadwal[baris1][hour]);
+    if ( startJadwal[baris1][jm] < 10 ) lcd.print("0");
+    lcd.print(startJadwal[baris1][jm]);
     lcd.print(":");
-    if ( startJadwal[baris1][minute] < 10 ) lcd.print("0");
-    lcd.print(startJadwal[baris1][minute]);
+    if ( startJadwal[baris1][mn] < 10 ) lcd.print("0");
+    lcd.print(startJadwal[baris1][mn]);
     lcd.print("-");
-    if ( endJadwal[baris1][hour] < 10 ) lcd.print("0");
-    lcd.print(endJadwal[baris1][hour]);
+    if ( endJadwal[baris1][jm] < 10 ) lcd.print("0");
+    lcd.print(endJadwal[baris1][jm]);
     lcd.print(":");
-    if ( endJadwal[baris1][minute] < 10 ) lcd.print("0");
-    lcd.print(endJadwal[baris1][minute]);
+    if ( endJadwal[baris1][mn] < 10 ) lcd.print("0");
+    lcd.print(endJadwal[baris1][mn]);
   
     lcd.setCursor(4,1);
     lcd.print(" ");
-    if ( startJadwal[baris2][hour] < 10 ) lcd.print("0");
-    lcd.print(startJadwal[baris2][hour]);
+    if ( startJadwal[baris2][jm] < 10 ) lcd.print("0");
+    lcd.print(startJadwal[baris2][jm]);
     lcd.print(":");
-    if ( startJadwal[baris2][minute] < 10 ) lcd.print("0");
-    lcd.print(startJadwal[baris2][minute]);
+    if ( startJadwal[baris2][mn] < 10 ) lcd.print("0");
+    lcd.print(startJadwal[baris2][mn]);
     lcd.print("-");
-    if ( endJadwal[baris2][hour] < 10 ) lcd.print("0");
-    lcd.print(endJadwal[baris2][hour]);
+    if ( endJadwal[baris2][jm] < 10 ) lcd.print("0");
+    lcd.print(endJadwal[baris2][jm]);
     lcd.print(":");
-    if ( endJadwal[baris2][minute] < 10 ) lcd.print("0");
-    lcd.print(endJadwal[baris2][minute]);
+    if ( endJadwal[baris2][mn] < 10 ) lcd.print("0");
+    lcd.print(endJadwal[baris2][mn]);
   }
 }
 
@@ -2108,30 +2119,30 @@ void view_for_set_jadwal(int kursor)
   int baris2 = (kursor * 2) + 2;
   
   lcd.setCursor(2,0);
-  if ( startJadwal[baris1][hour] < 10 ) lcd.print("0");
-  lcd.print(startJadwal[baris1][hour]);
+  if ( startJadwal[baris1][jm] < 10 ) lcd.print("0");
+  lcd.print(startJadwal[baris1][jm]);
   lcd.print(":");
-  if ( startJadwal[baris1][minute] < 10 ) lcd.print("0");
-  lcd.print(startJadwal[baris1][minute]);
+  if ( startJadwal[baris1][mn] < 10 ) lcd.print("0");
+  lcd.print(startJadwal[baris1][mn]);
   lcd.print("-");
-  if ( endJadwal[baris1][hour] < 10 ) lcd.print("0");
-  lcd.print(endJadwal[baris1][hour]);
+  if ( endJadwal[baris1][jm] < 10 ) lcd.print("0");
+  lcd.print(endJadwal[baris1][jm]);
   lcd.print(":");
-  if ( endJadwal[baris1][minute] < 10 ) lcd.print("0");
-  lcd.print(endJadwal[baris1][minute]);
+  if ( endJadwal[baris1][mn] < 10 ) lcd.print("0");
+  lcd.print(endJadwal[baris1][mn]);
 
   lcd.setCursor(2,1);
-  if ( startJadwal[baris2][hour] < 10 ) lcd.print("0");
-  lcd.print(startJadwal[baris2][hour]);
+  if ( startJadwal[baris2][jm] < 10 ) lcd.print("0");
+  lcd.print(startJadwal[baris2][jm]);
   lcd.print(":");
-  if ( startJadwal[baris2][minute] < 10 ) lcd.print("0");
-  lcd.print(startJadwal[baris2][minute]);
+  if ( startJadwal[baris2][mn] < 10 ) lcd.print("0");
+  lcd.print(startJadwal[baris2][mn]);
   lcd.print("-");
-  if ( endJadwal[baris2][hour] < 10 ) lcd.print("0");
-  lcd.print(endJadwal[baris2][hour]);
+  if ( endJadwal[baris2][jm] < 10 ) lcd.print("0");
+  lcd.print(endJadwal[baris2][jm]);
   lcd.print(":");
-  if ( endJadwal[baris2][minute] < 10 ) lcd.print("0");
-  lcd.print(endJadwal[baris2][minute]);
+  if ( endJadwal[baris2][mn] < 10 ) lcd.print("0");
+  lcd.print(endJadwal[baris2][mn]);
 }
 
 void set_tglmerah(int tglmerah)
@@ -3455,7 +3466,10 @@ void simpan_jam_web(String dataJam)
     int jam = dataJam.substring(1,3).toInt();
     int menit = dataJam.substring(3,5).toInt();
     
-    myRTC.setDS1302Time(00, menit, jam, hari, tanggal, bulan, tahun);
+//    myRTC.setDS1302Time(00, menit, jam, hari, tanggal, bulan, tahun);
+    myRTC.setDOW(hari);
+    myRTC.setTime(jam, menit, 0);
+    myRTC.setDate(tanggal, bulan, tahun);
 }
 
 void send_baca_jam_sibuk(int jamSibuk)
@@ -3853,7 +3867,10 @@ void set_waktu()
         batal();
         break;
       case 'b':
-        myRTC.setDS1302Time(00, menit, jam, hari, tanggal, bulan, tahun);
+//        myRTC.setDS1302Time(00, menit, jam, hari, tanggal, bulan, tahun);
+        myRTC.setDOW(hari);
+        myRTC.setTime(jam, menit, 0);
+        myRTC.setDate(tanggal, bulan, tahun);
 
         simpan();
         baca_jadwal();
@@ -3874,14 +3891,24 @@ void set_waktu()
 
 void baca_waktu()
 {
-  myRTC.updateTime();
-  hari = myRTC.dayofweek;
-  tanggal = myRTC.dayofmonth;
-  bulan = myRTC.month;
-  tahun = myRTC.year;
-  jam = myRTC.hours;
-  menit = myRTC.minutes;
-  detik = myRTC.seconds;
+//  myRTC.updateTime();
+//  hari = myRTC.dayofweek;
+//  tanggal = myRTC.dayofmonth;
+//  bulan = myRTC.month;
+//  tahun = myRTC.year;
+//  jam = myRTC.hours;
+//  menit = myRTC.minutes;
+//  detik = myRTC.seconds;
+
+  t = myRTC.getTime();
+  hari = t.dow;
+  if ( hari >= 7 ) hari = 0;
+  tanggal = t.date;
+  bulan = t.mon;
+  tahun= t.year;
+  jam = t.hour;
+  menit =  t.min;
+  detik = t.sec;
 
   cek_reset();
 }
@@ -3999,11 +4026,11 @@ void baca_jadwal_start()
         startJadwal[i][j] = nilaiEEPROM;
       }
       
-//      Serial.print(alamatEEPROM);
-//      Serial.print("\t");
-//      Serial.print(nilaiEEPROM);
-//      Serial.print("\t");
-//      Serial.println(startJadwal[i][j]);
+      Serial.print(alamatEEPROM);
+      Serial.print("\t");
+      Serial.print(nilaiEEPROM);
+      Serial.print("\t");
+      Serial.println(startJadwal[i][j]);
       alamatEEPROM += 1;
     }
   }
@@ -4058,71 +4085,71 @@ void baca_jadwal()
 {
   baca_waktu();
 
-  if (jam == endJadwal[0][hour] && menit >= endJadwal[0][minute])
+  if (jam == endJadwal[0][jm] && menit >= endJadwal[0][mn])
     modeTL = 'b';
-  else if (jam > endJadwal[0][hour] && menit < endJadwal[0][minute])
+  else if (jam > endJadwal[0][jm] && menit < endJadwal[0][mn])
     modeTL = 'b';
 
-//  else if (jam == 00 && menit > startJadwal[2][minute])
+//  else if (jam == 00 && menit > startJadwal[2][mn])
     
 
-  else if (jam == startJadwal[2][hour] && menit > startJadwal[2][minute])
+  else if (jam == startJadwal[2][jm] && menit > startJadwal[2][mn])
     currSc = 2;
-  else if (jam > startJadwal[2][hour] && jam < endJadwal[2][hour])
+  else if (jam > startJadwal[2][jm] && jam < endJadwal[2][jm])
     currSc = 2;
-  else if (jam == endJadwal[2][hour] && menit < endJadwal[2][minute])
+  else if (jam == endJadwal[2][jm] && menit < endJadwal[2][mn])
     currSc = 2;
 
-  else if (jam == startJadwal[1][hour] && menit > startJadwal[1][minute])
+  else if (jam == startJadwal[1][jm] && menit > startJadwal[1][mn])
     currSc = 1;
-  else if (jam > startJadwal[1][hour] && jam < endJadwal[1][hour])
+  else if (jam > startJadwal[1][jm] && jam < endJadwal[1][jm])
     currSc = 1;
-  else if (jam == endJadwal[1][hour] && menit < endJadwal[1][minute])
+  else if (jam == endJadwal[1][jm] && menit < endJadwal[1][mn])
     currSc = 1;
 
-  else if (jam == startJadwal[3][hour] && menit > startJadwal[3][minute])
+  else if (jam == startJadwal[3][jm] && menit > startJadwal[3][mn])
     currSc = 3;
-  else if (jam > startJadwal[3][hour] && jam < endJadwal[3][hour])
+  else if (jam > startJadwal[3][jm] && jam < endJadwal[3][jm])
     currSc = 3;
-  else if (jam == endJadwal[3][hour] && menit < endJadwal[3][minute])
+  else if (jam == endJadwal[3][jm] && menit < endJadwal[3][mn])
     currSc = 3;
 
-  else if (jam == startJadwal[4][hour] && menit > startJadwal[4][minute])
+  else if (jam == startJadwal[4][jm] && menit > startJadwal[4][mn])
     currSc = 4;
-  else if (jam > startJadwal[4][hour] && jam < endJadwal[4][hour])
+  else if (jam > startJadwal[4][jm] && jam < endJadwal[4][jm])
     currSc = 4;
-  else if (jam == endJadwal[4][hour] && menit < endJadwal[4][minute])
+  else if (jam == endJadwal[4][jm] && menit < endJadwal[4][mn])
     currSc = 4;
 
-  else if (jam == startJadwal[5][hour] && menit > startJadwal[5][minute])
+  else if (jam == startJadwal[5][jm] && menit > startJadwal[5][mn])
     currSc = 5;
-  else if (jam > startJadwal[5][hour] && jam < endJadwal[5][hour])
+  else if (jam > startJadwal[5][jm] && jam < endJadwal[5][jm])
     currSc = 5;
-  else if (jam == endJadwal[5][hour] && menit < endJadwal[5][minute])
+  else if (jam == endJadwal[5][jm] && menit < endJadwal[5][mn])
     currSc = 5;
 
-  else if (jam == startJadwal[6][hour] && menit > startJadwal[6][minute])
+  else if (jam == startJadwal[6][jm] && menit > startJadwal[6][mn])
     currSc = 6;
-  else if (jam > startJadwal[6][hour] && jam < endJadwal[6][hour])
+  else if (jam > startJadwal[6][jm] && jam < endJadwal[6][jm])
     currSc = 6;
-  else if (jam == endJadwal[6][hour] && menit < endJadwal[6][minute])
+  else if (jam == endJadwal[6][jm] && menit < endJadwal[6][mn])
     currSc = 6;
 
-  else if (jam == startJadwal[7][hour] && menit > startJadwal[7][minute])
+  else if (jam == startJadwal[7][jm] && menit > startJadwal[7][mn])
     currSc = 7;
-  else if (jam > startJadwal[7][hour] && jam < endJadwal[7][hour])
+  else if (jam > startJadwal[7][jm] && jam < endJadwal[7][jm])
     currSc = 7;
-  else if (jam == endJadwal[7][hour] && menit < endJadwal[7][minute])
+  else if (jam == endJadwal[7][jm] && menit < endJadwal[7][mn])
     currSc = 7;
 
-  else if (jam == startJadwal[8][hour] && menit > startJadwal[8][minute])
+  else if (jam == startJadwal[8][jm] && menit > startJadwal[8][mn])
     currSc = 8;
-  else if (jam > startJadwal[8][hour] && jam < endJadwal[8][hour])
+  else if (jam > startJadwal[8][jm] && jam < endJadwal[8][jm])
     currSc = 8;
-  else if (jam == endJadwal[8][hour] && menit < endJadwal[8][minute])
+  else if (jam == endJadwal[8][jm] && menit < endJadwal[8][mn])
     currSc = 8;
 
-  else if (jam == startJadwal[0][hour] && menit >= startJadwal[0][minute])
+  else if (jam == startJadwal[0][jm] && menit >= startJadwal[0][mn])
     modeTL = 'a';
 
   else
@@ -4156,7 +4183,7 @@ byte cek_log()
 
 void cek_reset()
 {
-  if ( jam == endJadwal[0][hour] && menit == endJadwal[0][minute] && detik < 2 ) 
+  if ( jam == endJadwal[0][jm] && menit == endJadwal[0][mn] && detik < 2 ) 
   {
     auto_reset();
   }
